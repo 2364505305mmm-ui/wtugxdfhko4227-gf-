@@ -5542,24 +5542,39 @@ function createMessageElement(msg, chat) {
     if (msg.isHidden) {
         return null;
     }
-    // ▼▼▼ 在此处新增代码 ▼▼▼
-    // 处理已撤回的消息
-    if (msg.type === 'retracted') {
+// ▼▼▼ 请用下面这【一整块】全新的代码，替换掉您文件中旧的 if (msg.type === 'retracted') { ... } 代码块 ▼▼▼
+        if (msg.type === 'retracted') {
         const wrapper = document.createElement('div');
-        // 复用“拍一拍”的居中样式和结构，以确保它也能被多选功能识别
         wrapper.className = 'message-wrapper system-pat'; 
         const bubble = document.createElement('div');
-        // 复用系统消息的气泡样式
         bubble.className = 'message-bubble system-bubble'; 
         bubble.dataset.timestamp = msg.timestamp;
         bubble.textContent = msg.content;
         wrapper.appendChild(bubble);
-        // 同样为撤回提示添加长按和点击事件，以便可以删除
+
+        // 为 wrapper 添加一个统一的点击事件监听器
+        wrapper.addEventListener('click', () => {
+            if (isSelectionMode) {
+                toggleMessageSelection(msg.timestamp);
+            } 
+            else if (msg.role === 'assistant' && msg.originalContent) {
+                showCustomAlert(
+                    `“${msg.senderName}”的撤回内容`,
+                    msg.originalContent.replace(/\n/g, '<br>')
+                ); // <--- 检查这里的右括号
+            }
+        }); // <--- 检查这里的结尾
+
         addLongPressListener(wrapper, () => showMessageActions(msg.timestamp));
+        
+        // 注意：原始代码在这里有一个重复的点击监听器，虽然多余但不会报错。
+        // 为了安全起见，我们把它也加上，以确保与原始结构最接近。
         wrapper.addEventListener('click', () => { if (isSelectionMode) toggleMessageSelection(msg.timestamp); });
+
         return wrapper;
     }
-    // ▲▲▲ 新增结束 ▲▲▲
+
+// ▲▲▲ 替换结束 ▲▲▲    
     if (msg.type === 'pat_message') {
         const wrapper = document.createElement('div');
         wrapper.className = 'message-wrapper system-pat'; 
@@ -6037,6 +6052,9 @@ ${contextSummary || "（无有效对话记录）"}
     - 如果提示是**用户投了票**，你可以根据自己的性格决定是否也使用 "vote" 指令跟票。
     - 如果提示是**投票已结束**，你应该根据投票结果发表你的看法或评论。
     - 你也可以随时主动发起投票。
+// ▼▼▼ 在这里添加新规则 ▼▼▼
+8.  **【【【全新】】】撤回消息**: 如果你某个角色的发言不符合人设或有误，你可以使用 "retract_message" 指令将其撤回。只能撤回自己最近发出的消息。
+// ▲▲▲ 添加结束 ▲▲▲
 
 ## 你可以使用的操作指令 (JSON数组中的元素):
 -   **发送文本**: \`{"type": "text", "name": "角色名", "message": "文本内容"}\`
@@ -6053,6 +6071,9 @@ ${contextSummary || "（无有效对话记录）"}
 -   **【新】发送系统消息**: \`{"type": "system_message", "content": "你想在聊天中显示的系统文本"}\` 
 -   **【【【全新】】】发起投票**: \`{"type": "poll", "name": "你的角色名", "question": "投票的问题", "options": "选项A\\n选项B\\n选项C"}\` (重要提示：options字段是一个用换行符 \\n 分隔的字符串，不是数组！)
 -   **【【【全新】】】参与投票**: \`{"type": "vote", "name": "你的角色名", "poll_timestamp": (投票消息的时间戳), "choice": "你选择的选项文本"}\`
+// ▼▼▼ 在这里添加新指令 ▼▼▼
+-   **【【【全新】】】撤回消息**: \`{"type": "retract_message", "name": "你的角色名", "timestamp": (要撤回的消息的时间戳)}\`
+// ▲▲▲ 添加结束 ▲▲▲
 
 # 如何区分图片与表情:
 -   **图片 (ai_image)**: 指的是【模拟真实相机拍摄的照片】，比如风景、自拍、美食等。指令: \`{"type": "ai_image", "description": "图片的详细文字描述..."}\`
@@ -6121,6 +6142,9 @@ ${chat.settings.aiPersona}
 5.  **【新】更新状态**: 你可以在对话中【自然地】改变你的状态。比如，聊到一半你可能会说“我先去洗个澡”，然后更新你的状态。
 6.  **【【【最终手段】】】**: 只有在对话让你的角色感到不适、被冒犯或关系破裂时，你才可以使用 \`block_user\` 指令。这是一个非常严肃的操作，会中断你们的对话。
 7. **后台行为**: 你有几率在回复聊天内容的同时，执行一些“后台”操作来表现你的独立生活（发动态、评论、点赞）。
+// ▼▼▼ 在这里添加新规则 ▼▼▼
+8. **撤回消息**: 如果你觉得刚才说的话不妥或不符合人设，你可以使用 "retract_message" 指令撤回你最近的一条消息。
+// ▲▲▲ 添加结束 ▲▲▲
 # 你的头像库
 - 你可以根据对话内容或你的心情，从下面的头像库中选择一个新头像来更换。
 - **当前头像**: ${chat.settings.aiAvatar}
@@ -6153,6 +6177,9 @@ ${chat.settings.aiAvatarLibrary && chat.settings.aiAvatarLibrary.length > 0
 -   **【新增】拉黑用户**: \`{"type": "block_user"}\`
 -   **【【【全新】】】回应好友申请**: \`{"type": "friend_request_response", "decision": "accept" or "reject"}\`
 -   **【全新】更换头像**: \`{"type": "change_avatar", "name": "头像名"}\` (头像名必须从上面的“可用头像列表”中选择)
+// ▼▼▼ 在这里添加新指令 ▼▼▼
+-   **【全新】撤回消息**: \`{"type": "retract_message", "timestamp": (要撤回的消息的时间戳)}\`
+// ▲▲▲ 添加结束 ▲▲▲
 
 # 关于“记录回忆”的特别说明：
 -   在对话中，如果发生了对你而言意义非凡的事件（比如用户向你表白、你们达成了某个约定、或者你度过了一个特别开心的时刻），你可以使用\`create_memory\`指令来“写日记”。
@@ -6361,6 +6388,24 @@ if (!response.ok) {
                         }
                     }
                     continue;
+
+// ▼▼▼ 在任意 case 之间添加下面这段新代码 ▼▼▼
+                case 'retract_message':
+                    // 根据时间戳找到要撤回的消息
+                    const messageToRetract = chat.history.find(m => m.timestamp === msgData.timestamp);
+                    const senderName = msgData.name || chat.name;
+
+                    // 确保消息存在、是这个AI发的、且还没被撤回过
+                    if (messageToRetract && messageToRetract.senderName === senderName && messageToRetract.type !== 'retracted') {
+                        // 核心：将被撤回的内容存起来
+                        messageToRetract.originalContent = messageToRetract.content; 
+                        messageToRetract.type = 'retracted';
+                        messageToRetract.content = `${senderName} 撤回了一条消息`;
+                        console.log(`AI '${senderName}' 撤回了消息 (timestamp: ${msgData.timestamp})`);
+                    }
+                    // 处理完后，跳过本轮循环，继续处理AI可能返回的其他指令
+                    continue; 
+// ▲▲▲ 添加结束 ▲▲▲
 
                 case 'qzone_like':
                    const postToLike = await db.qzonePosts.get(parseInt(msgData.postId));
