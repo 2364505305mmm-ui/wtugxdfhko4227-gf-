@@ -1883,6 +1883,7 @@ body {
     opacity: 0.9 !important;
 }
 
+
 /* ▼▼▼ 请用下面这【一整块】全新的自适应代码，替换掉所有旧的头像相关样式 ▼▼▼ */
 
 /* 1. 头像容器的【默认/无框】状态 */
@@ -3161,6 +3162,66 @@ body {
 }
 
 /* ▲▲▲ 新CSS粘贴结束 ▲▲▲ */
+/* ▼▼▼ 【全新】转账收款与状态样式 ▼▼▼ */
+
+/* 当原始转账卡片被领取后，给它一个“已打开”的样式 */
+.message-bubble .transfer-card.claimed {
+    background: radial-gradient(circle at top left, #d1d1d1, #b0b0b0) !important;
+    cursor: default;
+    opacity: 0.8;
+}
+.message-bubble .transfer-card.claimed::before {
+    content: '✅'; /* 用一个简单的✅图标表示已处理 */
+}
+
+/* “我已收款”回执消息的气泡特殊处理 */
+.message-bubble.is-transfer-receipt .content {
+    padding: 0;
+    background-color: transparent !important; /* 强制透明，因为卡片自带背景 */
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* “我已收款”回执卡片样式 */
+.transfer-receipt-card {
+    width: 200px;
+    border-radius: 8px;
+    padding: 12px;
+    position: relative;
+    background-color: white; /* 卡片使用白色背景 */
+    color: #1f1f1f; /* 文字为深色 */
+}
+
+.receipt-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+
+.receipt-icon {
+    width: 20px;
+    height: 20px;
+    /* 使用内联SVG作为绿色对勾图标 */
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.receipt-title {
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.receipt-amount {
+    font-size: 13px;
+    color: #8a8a8a;
+}
+/* ▲▲▲ 新CSS粘贴结束 ▲▲▲ */
+
 
 /* === 【全新】聊天头部“正在输入”状态样式 === */
 #chat-header-title.typing-status {
@@ -5653,10 +5714,25 @@ function createMessageElement(msg, chat) {
         contentHtml = `<div class="voice-message-body" data-text="${msg.content}"><div class="voice-waveform">${waveformHTML}</div><span class="voice-duration">${durationFormatted}</span></div>`;
     } else if (msg.type === 'transfer') {
         bubble.classList.add('is-transfer');
-        const titleText = isUser ? `转账给 ${msg.receiverName || 'Ta'}` : `收到来自 ${msg.senderName} 的转账`;
-        const heartIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="vertical-align: middle;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>`;
-        contentHtml = `<div class="transfer-card"><div class="transfer-title">${heartIcon} ${titleText}</div><div class="transfer-amount">¥ ${Number(msg.amount).toFixed(2)}</div><div class="transfer-note">${msg.note || '对方没有留下备注哦~'}</div></div>`;
-    } else if (msg.type === 'waimai_request') {
+        bubble.classList.add('is-transfer');
+                // 【新增】检查红包状态，如果是claimed，则添加样式
+                const claimedClass = msg.status === 'claimed' ? 'claimed' : '';
+                const titleText = isUser ? `转账给 ${msg.receiverName || 'Ta'}` : `转账给 ${chat.settings.myNickname || '我'}`;
+                const heartIcon = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="vertical-align: middle;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>`;
+                contentHtml = `<div class="transfer-card ${claimedClass}"><div class="transfer-title">${heartIcon} ${titleText}</div><div class="transfer-amount">¥ ${Number(msg.amount).toFixed(2)}</div><div class="transfer-note">${msg.note || '对方没有留下备注哦~'}</div></div>`;
+    } else if (msg.type === 'transfer_receipt') {
+        bubble.classList.add('is-transfer-receipt');
+                const heartIconReceipt = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="vertical-align: middle;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>`;
+                const titleTextReceipt = "转账已查收";
+                // The note now indicates where the money came from
+                const noteTextReceipt = `来自 ${msg.senderName} 的转账`; 
+                contentHtml = `
+                    <div class="transfer-card">
+                        <div class="transfer-title">${heartIconReceipt} ${titleTextReceipt}</div>
+                        <div class="transfer-amount">¥ ${Number(msg.amount).toFixed(2)}</div>
+                        <div class="transfer-note">${noteTextReceipt}</div>
+                    </div>`;
+     } else if (msg.type === 'waimai_request') {
         bubble.classList.add('is-waimai-request');
         if (msg.status === 'paid' || msg.status === 'rejected') {
             bubble.classList.add(`status-${msg.status}`);
@@ -11580,6 +11656,55 @@ document.getElementById('chat-messages').addEventListener('click', (e) => {
     }
 });
 // ▲▲▲ 新事件监听器粘贴结束 ▲▲▲
+// ... inside init() function, after the existing 'chat-messages' click listener
+
+// ... inside init() function
+// ▼▼▼ 【最终修正版】使用事件委托处理AI转账卡片的点击（收款）事件 ▼▼▼
+document.getElementById('chat-messages').addEventListener('click', async (e) => {
+    // 1. 确保点击的是AI发送的、且尚未被领取的转账卡片
+    const transferCard = e.target.closest('.message-bubble.ai .transfer-card:not(.claimed)');
+    if (!transferCard) return;
+
+    // 2. 获取相关信息
+    const messageBubble = transferCard.closest('.message-bubble');
+    if (!messageBubble || !messageBubble.dataset.timestamp) return;
+    
+    const timestamp = parseInt(messageBubble.dataset.timestamp);
+    const chat = state.chats[state.activeChatId];
+    const messageIndex = chat.history.findIndex(m => m.timestamp === timestamp);
+
+    if (messageIndex > -1) {
+        // 3. 更新原始转账消息的状态为“已领取”
+        const originalMsg = chat.history[messageIndex];
+        originalMsg.status = 'claimed';
+
+        // 4. 创建一条用户发送的“已收款”回执消息
+        const receiptMsg = {
+            role: 'user',
+            type: 'transfer_receipt',
+            amount: originalMsg.amount,
+            senderName: originalMsg.senderName,
+            timestamp: Date.now()
+        };
+        chat.history.push(receiptMsg);
+        
+        // 5. 【核心修正】创建一条对AI更明确的、对用户隐藏的系统消息
+        const hiddenMsg = {
+            role: 'system',
+            content: `[系统提示：【重要】用户刚刚点击了你之前发送的转账，并成功收款 ${originalMsg.amount} 元。这笔钱已经从你的账户转到了用户的账户。请对此发表评论或继续对话，不要把这个行为误解为用户在给你转账。]`, // <--- THIS LINE IS THE FIX
+            timestamp: Date.now() + 1, // 确保时间戳在回执之后
+            isHidden: true
+        };
+        chat.history.push(hiddenMsg);
+
+        // 6. 保存数据，刷新UI，并触发AI响应
+        await db.chats.put(chat);
+        renderChatInterface(state.activeChatId);
+        triggerAiResponse();
+    }
+});
+// ▲▲▲ 新事件绑定结束 ▲▲▲
+
 
   // ▼▼▼ 【全新】AI头像库功能事件绑定 ▼▼▼
 document.getElementById('manage-ai-avatar-library-btn').addEventListener('click', openAiAvatarLibraryModal);
