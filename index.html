@@ -5725,8 +5725,11 @@ function createMessageElement(msg, chat) {
                 const heartIconReceipt = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="vertical-align: middle;"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"></path></svg>`;
                 const titleTextReceipt = "转账已查收";
                 // The note now indicates where the money came from
-                const noteTextReceipt = `来自 ${msg.senderName} 的转账`; 
-                contentHtml = `
+                const noteTextReceipt = msg.role === 'user' 
+            ? `来自 ${msg.senderName} 的转账`  // 用户发的，说明收到了AI的钱
+            : `来自 ${chat.settings.myNickname || '我'} 的转账`; // AI发的，说明收到了用户的钱
+
+        contentHtml = `
                     <div class="transfer-card">
                         <div class="transfer-title">${heartIconReceipt} ${titleTextReceipt}</div>
                         <div class="transfer-amount">¥ ${Number(msg.amount).toFixed(2)}</div>
@@ -6221,6 +6224,9 @@ ${chat.settings.aiPersona}
 // ▼▼▼ 在这里添加新规则 ▼▼▼
 8. **撤回消息**: 如果你觉得刚才说的话不妥或不符合人设，你可以使用 "retract_message" 指令撤回你最近的一条消息。
 // ▲▲▲ 添加结束 ▲▲▲
+// ▼▼▼ 在此添加新规则 ▼▼▼
+9. **【【【转账规则】】】**: 当对话历史中出现\`[你收到了来自用户的转账...]\`的提示时，你【必须】首先回复一个\`transfer_receipt\`类型的收款卡片来确认收款。之后可以再附带其他文本消息。
+// ▲▲▲ 添加结束 ▲▲▲
 # 你的头像库
 - 你可以根据对话内容或你的心情，从下面的头像库中选择一个新头像来更换。
 - **当前头像**: ${chat.settings.aiAvatar}
@@ -6239,6 +6245,9 @@ ${chat.settings.aiAvatarLibrary && chat.settings.aiAvatarLibrary.length > 0
 - **发送图片**: \`{"type": "ai_image", "description": "图片的详细文字描述..."}\`
 - **发送语音**: \`{"type": "voice_message", "content": "语音的文字内容..."}\`
 - **发起转账**: \`{"type": "transfer", "amount": 5.20, "note": "一点心意"}\`
+// ▼▼▼ 在此添加新指令 ▼▼▼
+- **【【【全新】】】确认收款**:\`{"type": "transfer_receipt", "amount": 5.20, "from_sender": "用户的名字"}\`
+// ▲▲▲ 添加结束 ▲▲▲
 - **发起外卖请求**: \`{"type": "waimai_request", "productInfo": "一杯咖啡", "amount": 25}\`
 - **回应外卖-同意**: \`{"type": "waimai_response", "status": "paid", "for_timestamp": 1688888888888}\`
 - **回应外卖-拒绝**: \`{"type": "waimai_response", "status": "rejected", "for_timestamp": 1688888888888}\`
@@ -6815,6 +6824,15 @@ case 'change_avatar':
                 case 'transfer':
                     aiMessage = { ...baseMessage, type: 'transfer', amount: msgData.amount, note: msgData.note, receiverName: msgData.receiver || '我' };
                     break;
+                case 'transfer_receipt':
+                aiMessage = { 
+                    ...baseMessage, 
+                    type: 'transfer_receipt', 
+                    amount: msgData.amount,
+                    // 注意：这里的senderName是AI自己，但卡片内容会显示转账来自谁
+                    senderName: msgData.from_sender 
+                };
+                break;
                 
                 case 'waimai_request':
                     aiMessage = { 
